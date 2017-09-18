@@ -6,3 +6,11 @@ dependencies {
 
 sourceCompatibility = "1.7"
 targetCompatibility = "1.7"
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', '../lib/src/main/java']
+        }
+    }
+}
