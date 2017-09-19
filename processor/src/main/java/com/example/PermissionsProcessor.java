@@ -2,6 +2,7 @@ package com.example;
 
 import com.example.john.lib.RunTimePermissions;
 import com.google.auto.service.AutoService;
+import com.google.common.collect.ImmutableSet;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
@@ -32,8 +33,6 @@ import javax.lang.model.util.ElementFilter;
 import javax.tools.Diagnostic;
 
 
-@SupportedAnnotationTypes({"com.example.john.lib.RunTimePermissions"})
-@SupportedSourceVersion(SourceVersion.RELEASE_7)
 @AutoService(Processor.class)
 public class PermissionsProcessor extends AbstractProcessor {
     private Filer filer;
@@ -42,6 +41,16 @@ public class PermissionsProcessor extends AbstractProcessor {
     public synchronized void init(ProcessingEnvironment processingEnvironment) {
         super.init(processingEnvironment);
         filer = processingEnvironment.getFiler();
+    }
+
+    @Override
+    public Set<String> getSupportedAnnotationTypes() {
+        return ImmutableSet.of(RunTimePermissions.class.getCanonicalName());
+    }
+
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
+        return SourceVersion.RELEASE_7;
     }
 
     @Override
