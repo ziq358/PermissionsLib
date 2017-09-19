@@ -1,4 +1,4 @@
-package com.example;
+package com.example.john.processor;
 
 import com.example.john.lib.RunTimePermissions;
 import com.google.auto.service.AutoService;

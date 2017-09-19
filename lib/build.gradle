@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.novoda.bintray-release'
 
 android {
     compileSdkVersion 26
@@ -33,4 +34,15 @@ dependencies {
     })
     compile 'com.android.support:appcompat-v7:26.+'
     testCompile 'junit:junit:4.12'
+}
+
+publish {
+    userOrg = USER
+    repoName = REPONAME
+    groupId = GROUP_ID
+    artifactId = ARTIFACT_ID_CORE
+    version = VERSION
+    description = DESCRIPTION
+    website = WEBSITE
+    licences = ['Apache-2.0']
 }
