@@ -44,8 +44,8 @@ public class PermissionsProcessor extends AbstractProcessor {
 
     String CLASS_SUFFIX = "PermissionsDispatcher";
     String METHOD_SUFFIX = "WithCheck";
-    static String REQUEST_CODE_PREFIX = "REQUEST_";
-    static String PERMISSION_PREFIX = "PERMISSION_";
+     String REQUEST_CODE_PREFIX = "REQUEST_";
+     String PERMISSION_PREFIX = "PERMISSION_";
 
 
     private Filer filer;
@@ -97,12 +97,15 @@ public class PermissionsProcessor extends AbstractProcessor {
 
 
         //method
+        List<MethodSpec> needPermissionMethod = createMethods(needPermissionList);
+
 
         //class
         TypeSpec typeSpec = TypeSpec.classBuilder(className)
                 .addModifiers(Modifier.FINAL,Modifier.PUBLIC)
                 .addFields(needPermissionFields)
                 .addMethod(MethodSpec.constructorBuilder().addModifiers(Modifier.PRIVATE).build())
+                .addMethods(needPermissionMethod)
                 .build();
 
 
@@ -110,26 +113,26 @@ public class PermissionsProcessor extends AbstractProcessor {
                 .build();
     }
 
-    static String getPackageName(String name) {
+     String getPackageName(String name) {
         return name.substring(0, name.lastIndexOf("."));
     }
 
-    static String getClassName(String name) {
+     String getClassName(String name) {
         return name.substring(name.lastIndexOf(".") + 1);
     }
 
-    static String getRequestCodeFieldName(String name) {
+     String getRequestCodeFieldName(String name) {
         return REQUEST_CODE_PREFIX + name.toUpperCase();
     }
 
-    static String getPermissionFieldName(String name) {
+     String getPermissionFieldName(String name) {
         return PERMISSION_PREFIX + name.toUpperCase();
     }
 
 
-    static List<ExecutableElement> findMethods(Element rootElement, Class<? extends Annotation> clazz){
+     List<ExecutableElement> findMethods(Element rootElement, Class<? extends Annotation> clazz){
         List<ExecutableElement> methods = new ArrayList<>();
-        //获得子元素，分析子元素上的注解
+        //获得子元素，分析子元素上的注解, 找出有clazz 注解的 函数
         for (Element enclosedElement : rootElement.getEnclosedElements()) {
             Annotation annotation = enclosedElement.getAnnotation(clazz);
             if (annotation != null) {
@@ -139,7 +142,7 @@ public class PermissionsProcessor extends AbstractProcessor {
         return methods;
     }
 
-    static List<FieldSpec> createFields(List<ExecutableElement> elements) {
+     List<FieldSpec> createFields(List<ExecutableElement> elements) {
         List<FieldSpec> fieldSpecs = new ArrayList<>();
         int requestCodeIndex = 0;
         for (ExecutableElement element : elements) {
@@ -155,6 +158,17 @@ public class PermissionsProcessor extends AbstractProcessor {
             );
         }
         return fieldSpecs;
+    }
+
+    List<MethodSpec> createMethods(List<ExecutableElement> elements){
+        List<MethodSpec> methods = new ArrayList<>();
+        for (ExecutableElement element : elements) {
+            methods.add(MethodSpec.methodBuilder(element.getSimpleName().toString()+METHOD_SUFFIX)
+                    .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                    .returns(void.class)
+                    .build());
+        }
+        return methods;
     }
 
 }
