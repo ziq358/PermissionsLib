@@ -1,8 +1,12 @@
 package com.example.john.processor;
 
+import com.example.john.lib.NeedsPermission;
+import com.example.john.lib.OnNeverAskAgain;
+import com.example.john.lib.OnPermissionDenied;
 import com.example.john.lib.RunTimePermissions;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableSet;
+import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
@@ -10,6 +14,8 @@ import com.squareup.javapoet.TypeSpec;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +41,13 @@ import javax.tools.Diagnostic;
 
 @AutoService(Processor.class)
 public class PermissionsProcessor extends AbstractProcessor {
+
+    String CLASS_SUFFIX = "PermissionsDispatcher";
+    String METHOD_SUFFIX = "WithCheck";
+    static String REQUEST_CODE_PREFIX = "REQUEST_";
+    static String PERMISSION_PREFIX = "PERMISSION_";
+
+
     private Filer filer;
 
     @Override
@@ -55,15 +68,10 @@ public class PermissionsProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
-        System.out.println("ziq PermissionsProcessor---------------1");
-        System.out.println("ziq PermissionsProcessor---------------2");
-        Collection<? extends Element> annotatedElements = roundEnvironment.getElementsAnnotatedWith(RunTimePermissions.class);
-        Iterator<? extends Element> iterator = annotatedElements.iterator();
-        while (iterator.hasNext()){
-            System.out.println("ziq has RunTimePermissions---------------");
-            Element element = iterator.next();
+        Set<? extends Element> annotatedElements = roundEnvironment.getElementsAnnotatedWith(RunTimePermissions.class);
+        for (Element runtimePermissionElement: annotatedElements) {
             try {
-                JavaFile javaFile = generateHelloworld(element.getSimpleName().toString());
+                JavaFile javaFile = generatePermissionFile((TypeElement)runtimePermissionElement);
                 javaFile.writeTo(filer);
             } catch (IOException e) {
             }
@@ -72,18 +80,81 @@ public class PermissionsProcessor extends AbstractProcessor {
     }
 
 
-    private JavaFile generateHelloworld(String name) throws IOException{
-        MethodSpec main = MethodSpec.methodBuilder("main") //main代表方法名
-                .addModifiers(Modifier.PUBLIC,Modifier.STATIC)//Modifier 修饰的关键字
-                .addParameter(String[].class, "args") //添加string[]类型的名为args的参数
-                .addStatement("$T.out.println($S)", System.class,"Hello World, "+name)//添加代码，这里$T和$S后面会讲，这里其实就是添加了System,out.println("Hello World");
-                .build();
-        TypeSpec typeSpec = TypeSpec.classBuilder("HelloWorld")//HelloWorld是类名
+    private JavaFile generatePermissionFile(TypeElement element) throws IOException{
+
+        String qualifiedName = element.getQualifiedName().toString();
+
+        String packageName = getPackageName(qualifiedName);
+        String className = getClassName(qualifiedName) + CLASS_SUFFIX;
+
+        List<ExecutableElement> needPermissionList = findMethods(element, NeedsPermission.class);
+        List<ExecutableElement> onPermissionDeniedList = findMethods(element, OnPermissionDenied.class);
+        List<ExecutableElement> onNeverAskAgainList = findMethods(element, OnNeverAskAgain.class);
+
+
+        //field
+        List<FieldSpec> needPermissionFields = createFields(needPermissionList);
+
+
+        //method
+
+        //class
+        TypeSpec typeSpec = TypeSpec.classBuilder(className)
                 .addModifiers(Modifier.FINAL,Modifier.PUBLIC)
-                .addMethod(main)  //在类中添加方法
+                .addFields(needPermissionFields)
+                .addMethod(MethodSpec.constructorBuilder().addModifiers(Modifier.PRIVATE).build())
                 .build();
-        return JavaFile.builder("com.example.john.permissionslib", typeSpec)
+
+
+        return JavaFile.builder(packageName, typeSpec)
                 .build();
+    }
+
+    static String getPackageName(String name) {
+        return name.substring(0, name.lastIndexOf("."));
+    }
+
+    static String getClassName(String name) {
+        return name.substring(name.lastIndexOf(".") + 1);
+    }
+
+    static String getRequestCodeFieldName(String name) {
+        return REQUEST_CODE_PREFIX + name.toUpperCase();
+    }
+
+    static String getPermissionFieldName(String name) {
+        return PERMISSION_PREFIX + name.toUpperCase();
+    }
+
+
+    static List<ExecutableElement> findMethods(Element rootElement, Class<? extends Annotation> clazz){
+        List<ExecutableElement> methods = new ArrayList<>();
+        //获得子元素，分析子元素上的注解
+        for (Element enclosedElement : rootElement.getEnclosedElements()) {
+            Annotation annotation = enclosedElement.getAnnotation(clazz);
+            if (annotation != null) {
+                methods.add((ExecutableElement) enclosedElement);
+            }
+        }
+        return methods;
+    }
+
+    static List<FieldSpec> createFields(List<ExecutableElement> elements) {
+        List<FieldSpec> fieldSpecs = new ArrayList<>();
+        int requestCodeIndex = 0;
+        for (ExecutableElement element : elements) {
+            String requestCodeFieldName = getRequestCodeFieldName(element.getSimpleName().toString());
+            String permissionFieldName = getPermissionFieldName(element.getSimpleName().toString());
+            fieldSpecs.add(FieldSpec.builder(int.class, requestCodeFieldName, Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                        .initializer("$L", requestCodeIndex++)
+                        .build()
+            );
+            fieldSpecs.add(FieldSpec.builder(String[].class, permissionFieldName, Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                    .initializer("$N", "new String[]{\""+element.getAnnotation(NeedsPermission.class).value()+"\"}")
+                    .build()
+            );
+        }
+        return fieldSpecs;
     }
 
 }
