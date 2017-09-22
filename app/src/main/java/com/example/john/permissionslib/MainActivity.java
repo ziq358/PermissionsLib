@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,7 +23,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView mHelloWorld;
 
-    private final static int READ_STORAGE_REQUEST_CODE = 1;
+    private final static int READ_STORAGE_REQUEST_CODE = 111;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,13 +33,13 @@ public class MainActivity extends AppCompatActivity {
         mHelloWorld.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
-                        != PackageManager.PERMISSION_GRANTED){
+                if(ContextCompat.checkSelfPermission(MainActivity.this.getBaseContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
+                        == PackageManager.PERMISSION_GRANTED){
+                    Log.e("ziq", "granted read storage");
+                }else{
                     Log.e("ziq", "not granted read storage");
                     Log.e("ziq", "requestPermissions");
                     ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, READ_STORAGE_REQUEST_CODE);
-                }else{
-                    Log.e("ziq", "granted read storage");
                 }
             }
         });
@@ -48,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
         grantPermission.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                MainActivityPermissionsDispatcher.openSDcardWithCheck(MainActivity.this);
             }
         });
 
@@ -58,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         Log.e("ziq", "onRequestPermissionsResult");
+        MainActivityPermissionsDispatcher.onRequestPermissionsResult(MainActivity.this, requestCode, permissions, grantResults);
+
         switch (requestCode){
             case READ_STORAGE_REQUEST_CODE:
                 if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
@@ -75,17 +78,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @NeedsPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
-    private void openSDcard(String url){
+    void openSDcard(){
         Log.e("ziq", "openSDcard permission granted");
     }
 
     @OnPermissionDenied(Manifest.permission.READ_EXTERNAL_STORAGE)
-    private void openSDcardDeny(String url){
+    void openSDcardDeny(){
         Log.e("ziq", "openSDcard permission deny");
     }
 
     @OnNeverAskAgain(Manifest.permission.READ_EXTERNAL_STORAGE)
-    private void openSDcardNeverAsk(String url){
+    void openSDcardNeverAsk(){
         Log.e("ziq", "openSDcard never ask again");
     }
 

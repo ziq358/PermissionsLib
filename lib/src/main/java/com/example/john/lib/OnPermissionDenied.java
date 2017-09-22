@@ -8,5 +8,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.CLASS)
 public @interface OnPermissionDenied {
-    String[] value();
+    String value();
 }
