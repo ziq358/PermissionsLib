@@ -29,3 +29,6 @@ publish {
     website = WEBSITE
     licences = ['Apache-2.0']
 }
+
+//上传  命令行
+//./gradlew clean build bintrayUpload -PbintrayUser=BINTRAY_USERNAME -PbintrayKey=BINTRAY_KEY -PdryRun=false
